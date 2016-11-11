@@ -1,0 +1,25 @@
+#!/bin/bash
+
+if hash pacman 2>/dev/null; then
+	echo "----------start updating pacman----------"
+	sudo pacman -Syu
+fi
+
+if hash yaourt 2>/dev/null; then
+	echo "----------start updating yaourt----------"
+	yaourt -Syu --aur
+fi
+
+if hash apt-get 2>/dev/null; then
+	echo "---------start updating apt-get---------"
+	sudo apt-get update
+	sudo apt-get upgrade
+fi
+
+# if hash brew 2>/dev/null; then
+# 	echo "----------start updating brew----------"
+# fi
+
+# npm/yarn
+# mac system
+# nvm
