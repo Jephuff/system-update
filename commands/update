@@ -1,25 +1,83 @@
 #!/bin/bash
 
 if hash pacman 2>/dev/null; then
-	echo "----------start updating pacman----------"
+	echo "--------------------start updating pacman--------------------"
 	sudo pacman -Syu
 fi
 
 if hash yaourt 2>/dev/null; then
-	echo "----------start updating yaourt----------"
+	echo "--------------------start updating yaourt--------------------"
 	yaourt -Syu --aur
 fi
 
 if hash apt-get 2>/dev/null; then
-	echo "---------start updating apt-get---------"
+	echo "-------------------start updating apt-get-------------------"
 	sudo apt-get update
 	sudo apt-get upgrade
 fi
 
-# if hash brew 2>/dev/null; then
-# 	echo "----------start updating brew----------"
-# fi
+if hash npm 2>/dev/null; then
+	echo "-------------------start updating npm-------------------"
+	npm -g outdated | tail -n +2 | while read line; do
+		echo "$line" | while read name current wanted latest; do
+			UPDATE=""
+			while [[ -z $UPDATE ]]; do
+				printf "update $name from $current to $latest (y/N): "
+				read UPDATE < /dev/tty
 
-# npm/yarn
-# mac system
-# nvm
+				if [ "$UPDATE" == "" ]; then
+					UPDATE=n
+				fi
+
+				UPDATE=$(echo $UPDATE | tr "[:upper:]" "[:lower:]")
+
+				if [ "$UPDATE" != "y" ] && [ "$UPDATE" != "n" ]; then
+					UPDATE=""
+					echo "must be y or n"
+				fi
+			done
+
+			if [ $UPDATE == "y" ]; then
+				npm install $name@latest -g
+			fi
+		done
+	done
+fi
+
+
+if hash yarn 2>/dev/null; then
+	echo "-------------------start updating yarn-------------------"
+	TO_UPDATE=()
+
+	for line in $(yarn global ls --depth=0 | grep "^info" | awk '{print($2)}'); do
+		while read name current; do
+			latest=$(yarn info $name | grep -o "latest: .*\'" | grep -o "[0-9.]\{5,\}")
+			if [ "$latest" != "" ] && [ "$latest" != "$current" ]; then
+				UPDATE=""
+				while [[ -z $UPDATE ]]; do
+					printf "update $name from $current to $latest (y/N): "
+					read UPDATE < /dev/tty
+
+					if [ "$UPDATE" == "" ]; then
+						UPDATE=n
+					fi
+
+					UPDATE=$(echo $UPDATE | tr "[:upper:]" "[:lower:]")
+
+					if [ "$UPDATE" != "y" ] && [ "$UPDATE" != "n" ]; then
+						UPDATE=""
+						echo "must be y or n"
+					fi
+				done
+
+				if [ $UPDATE == "y" ]; then
+					TO_UPDATE+=("$name@latest")
+				fi
+			fi
+		done <<< $(echo $line | tr "@" " ")
+	done
+
+	for package in "${TO_UPDATE[@]}"; do
+		yarn global add $package
+	done
+fi
