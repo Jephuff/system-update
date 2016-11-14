@@ -1,0 +1,40 @@
+#!/bin/bash
+DASHES="--------------------------------------------------------------------------------"
+
+for COMMAND in `ls "$ROOT_FOR_PACKAGE_MANAGERS"`; do
+	if hash $COMMAND 2>/dev/null; then
+		MSG=" start updating $COMMAND "
+		NUM_DASHES=$(expr $(tput cols) - ${#MSG})
+		echo "${DASHES:0:$(expr $NUM_DASHES / 2)}$MSG${DASHES:0:$(expr $(expr $NUM_DASHES + 1) / 2)}"
+		COMMANDS="$ROOT_FOR_PACKAGE_MANAGERS/$COMMAND"
+
+		if [ -e "$COMMANDS/just-run.sh" ]; then 
+			"$COMMANDS/just-run.sh"
+		fi
+
+		if [ -e "$COMMANDS/upgrade-list.sh" ] && [ -e "$COMMANDS/upgrade.sh" ]; then
+			"$COMMANDS/upgrade-list.sh" | while read name current latest; do
+				[ "$current" == "$latest" ] && UPDATE="n" || UPDATE=""
+
+				while [[ -z $UPDATE ]]; do
+					printf "update $name from $current to $latest (y/N): "
+
+					read UPDATE < /dev/tty
+
+					[ "$UPDATE" == "" ] && UPDATE="n"
+
+					UPDATE=$(echo $UPDATE | tr "[:upper:]" "[:lower:]")
+
+					if [ "$UPDATE" != "y" ] && [ "$UPDATE" != "n" ]; then
+						UPDATE=""
+						echo "must be y or n"
+					fi
+				done
+
+				if [ $UPDATE == "y" ]; then
+					"$COMMANDS/upgrade.sh" "$name" "$latest"
+				fi
+			done
+		fi
+	fi
+done
